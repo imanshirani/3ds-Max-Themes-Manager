@@ -76,28 +76,6 @@ The result is written to:
 ```
 and applied live via `colorMan.loadColorFile()` + `colorMan.repaintUI()`.
 
----
-
-## Project Structure
-
-```
-MABThemsManger.bundle/
-└── Contents/
-    ├── main.py                   # entry point
-    ├── theme_engine.py           # OKLCH color derivation logic
-    ├── clrx_writer.py            # read/write MaxStartUI.clrx
-    ├── presets.py                # built-in + user preset management
-    ├── constants.py              # product metadata
-    ├── mab.ThemesManager.mcr     # Max macroScript
-    ├── mab.ThemesManager.ms      # MAXScript launcher
-    ├── mab.ThemesManager.mnx     # menu registration
-    └── ui/
-        ├── main_window.py        # main window layout
-        ├── swatch_tab.py         # color picker panel
-        ├── slider_tab.py         # OKLCH slider panel
-        ├── preset_sidebar.py     # preset list sidebar
-        └── settings_dialog.py    # about / settings dialog
-```
 
 ---
 
