@@ -1,12 +1,19 @@
 # 3ds Max Themes Manager
 
+[![Donate ❤️](https://img.shields.io/badge/Donate-PayPal-00457C?style=flat-square&logo=paypal&logoColor=white)](https://www.paypal.com/donate/?hosted_button_id=LAMNRY6DDWDC4)
+![3dsmax](https://img.shields.io/badge/Autodesk-3ds%20Max-0696D7?style=flat-square&logo=autodesk)
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)
+![PyQt6](https://img.shields.io/badge/GUI-PyQt6-41CD52?style=flat-square&logo=qt&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-purple?style=flat-square)
+
 A Python + PySide6 tool for **3ds Max 2025–2027** that lets you create and apply fully custom UI color themes — no manual XML editing required.
 
 Pick just **3 colors** (Base, Accent, Highlight) and the tool automatically derives all ~40 Max UI color IDs using perceptually-uniform **OKLCH color math**, then writes them directly to your `MaxStartUI.clrx` and reloads the theme live — no restart needed.
 
+![screenshot](etc/screen.png)
 ---
 
-## Features
+## ✨ Features
 
 - **3-color workflow** — choose Base, Accent, and Highlight; everything else is calculated automatically
 - **Live preview** — see a mock UI preview update in real time as you pick colors
@@ -29,7 +36,7 @@ Pick just **3 colors** (Base, Accent, Highlight) and the tool automatically deri
 
 ---
 
-## Installation
+## 📦 Installation
 
 1. Download the latest release and extract it.
 2. Copy `MABThemsManger.bundle` to one of:
