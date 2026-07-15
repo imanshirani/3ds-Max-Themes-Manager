@@ -115,4 +115,4 @@ If this tool saves you time, consider supporting its development:
 
 ---
 
-Developed by **Iman Shirani** — [MYARTSBOX](https://github.com/imanshirani)
+Developed by **Iman Shirani**
