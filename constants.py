@@ -1,0 +1,5 @@
+PRODUCT_NAME   = "3ds Max Themes Manager"
+VERSION        = "0.0.1"
+DEVELOPER_TAG  = "Developed by Iman Shirani"
+GITHUB_URL     = "https://github.com/imanshirani/3ds-Max-Themes-Manager"
+DONATION_LINK  = "https://www.paypal.com/donate/?hosted_button_id=LAMNRY6DDWDC4"
