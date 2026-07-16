@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 
-from theme_engine import generate_color_map, _shift, _is_dark
+from theme_engine import generate_color_map, _shift, _is_dark, _contrast_text
 import clrx_writer
 
 
@@ -139,11 +139,12 @@ class MiniPreview(QFrame):
         lay.addStretch()
 
     def update(self, base: str, accent: str, highlight: str):
-        text = _shift(base, dL=0.65 if _is_dark(base) else -0.65, scaleC=0.05)
+        bg_text  = _contrast_text(base)
+        btn_text = _contrast_text(accent)
         self.setStyleSheet(f"#MiniPreview {{ background:{base}; border-radius:4px; }}")
-        self._bg_lbl.setStyleSheet(f"color:{text}; padding:2px 6px;")
+        self._bg_lbl.setStyleSheet(f"color:{bg_text}; padding:2px 6px;")
         self._btn.setStyleSheet(
-            f"QPushButton {{ background:{accent}; color:{text};"
+            f"QPushButton {{ background:{accent}; color:{btn_text};"
             " border:none; padding:3px 10px; border-radius:3px; }}"
         )
         self._hi_lbl.setStyleSheet(f"color:{highlight}; padding:2px 6px;")

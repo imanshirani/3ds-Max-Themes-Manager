@@ -15,11 +15,13 @@ import constants
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, stylesheet: str = ""):
         super().__init__(parent)
         self.setWindowTitle(f"Settings — {constants.PRODUCT_NAME}")
         self.setFixedWidth(400)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        if stylesheet:
+            self.setStyleSheet(stylesheet)
         self._build()
 
     def _build(self):
@@ -38,11 +40,9 @@ class SettingsDialog(QDialog):
         info_lay.addWidget(title_lbl)
 
         meta_lbl = QLabel(
-            f"<span style='color:#888;'>Version:</span> "
-            f"<span style='color:#ddd;'>{constants.VERSION}</span>"
-            f"<br><span style='color:#aaa;'>{constants.DEVELOPER_TAG}</span>"
+            f"Version: {constants.VERSION}<br>{constants.DEVELOPER_TAG}"
         )
-        meta_lbl.setStyleSheet("font-size: 11px; line-height: 160%;")
+        meta_lbl.setStyleSheet("font-size: 11px;")
         info_lay.addWidget(meta_lbl)
 
         info_lay.addSpacing(6)

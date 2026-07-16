@@ -3,6 +3,12 @@ import os
 import xml.etree.ElementTree as ET
 import xml.dom.minidom as minidom
 
+def _hover_of(hex_val: str) -> str:
+    """Derive a hover color: slightly lighter for dark colors, slightly darker for light ones."""
+    from theme_engine import _is_dark, _shift
+    dL = 0.06 if _is_dark(hex_val) else -0.06
+    return _shift(hex_val, dL=dL)
+
 CLRX_PATH = os.path.join(
     os.environ.get("LOCALAPPDATA", ""),
     r"Autodesk\3dsMax\2026 - 64bit\ENU\en-US\UI\MaxStartUI.clrx"
@@ -57,8 +63,11 @@ def write_clrx(color_map: dict, path: str = CLRX_PATH, theme_type: int = 0):
 
     for cid, hex_val in color_map.items():
         if cid in existing:
-            existing[cid].set("value", hex_val)
-        # If not present, skip — we only update what's already in the file
+            el = existing[cid]
+            el.set("value", hex_val)
+            # Update hover attribute only if it already exists in the file
+            if el.get("hover") is not None:
+                el.set("hover", _hover_of(hex_val))
 
     # Pretty-print
     raw = ET.tostring(root, encoding="unicode")

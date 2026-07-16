@@ -16,191 +16,248 @@ from ui.swatch_tab      import SwatchPanel
 from ui.slider_tab      import SliderPanel
 from ui.settings_dialog import SettingsDialog
 import clrx_writer
-from theme_engine import generate_color_map
+from theme_engine import generate_color_map, _shift, _is_dark, _contrast_text
 
 
-STYLESHEET = """
-QWidget {
+def build_stylesheet(base: str, accent: str, highlight: str) -> str:
+    """Generate a fully adaptive QSS that works for both dark and light themes."""
+    dark = _is_dark(base)
+    s = 1 if dark else -1   # sign: positive shifts go lighter in dark, darker in light
+
+    text        = _contrast_text(base)
+    text_muted  = _shift(base, dL=s*0.28, scaleC=0.04)
+    text_subtle = _shift(base, dL=s*0.18, scaleC=0.02)
+
+    sidebar_bg  = _shift(base, dL=s*(-0.02))
+    sidebar_bdr = _shift(base, dL=s*0.09)
+
+    item_hover  = _shift(base, dL=s*0.07)
+    sel_bg      = _shift(accent, dL=-0.28 if dark else 0.32, scaleC=0.3)
+    sel_text    = _contrast_text(sel_bg)
+
+    strip_bg    = _shift(base, dL=s*0.05)
+    strip_bdr   = _shift(base, dL=s*0.10)
+
+    bar_bg      = _shift(base, dL=s*(-0.06))
+    bar_bdr     = _shift(base, dL=s*0.08)
+
+    tog_bg      = _shift(base, dL=s*(-0.03))
+    tog_bdr     = _shift(base, dL=s*0.10)
+    tog_act     = _shift(accent, dL=-0.25 if dark else 0.30, scaleC=0.32)
+    tog_act_t   = _contrast_text(tog_act)
+
+    frame_bg    = _shift(base, dL=s*0.04)
+    frame_bdr   = _shift(base, dL=s*0.09)
+    group_bg    = _shift(base, dL=s*0.02)
+
+    groove      = _shift(base, dL=s*0.13)
+    handle      = _shift(base, dL=s*0.38, scaleC=0.04)
+
+    sc_h        = _shift(base, dL=s*0.22, scaleC=0.0)
+    sc_hov      = _shift(base, dL=s*0.36, scaleC=0.0)
+
+    gen_bg      = _shift(base, dL=s*0.07)
+    gen_hvr     = _shift(base, dL=s*0.13)
+    gen_prs     = _shift(base, dL=s*0.02)
+    gen_bdr     = _shift(base, dL=s*0.11)
+
+    apply_txt   = _contrast_text(accent)
+    apply_hvr   = _shift(accent, dL=-0.08)
+    apply_prs   = _shift(accent, dL=-0.16)
+
+    prev_bdr    = _shift(base, dL=s*0.12)
+
+    return f"""
+QWidget {{
     font-family: "Segoe UI", sans-serif;
     font-size: 12px;
-    color: #dcdcdc;
-    background: #1c1c1c;
-}
+    color: {text};
+    background: {base};
+}}
 
 /* ── Sidebar ─────────────────────────────────────── */
-QFrame#Sidebar {
-    background: #1a1a1a;
-    border-right: 1px solid #2e2e2e;
-}
-QLabel#SidebarTitle {
-    color: #aaaaaa;
+QWidget#Sidebar {{
+    background: {sidebar_bg};
+    border-right: 1px solid {sidebar_bdr};
+}}
+QLabel#SidebarTitle {{
+    color: {text_subtle};
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 1px;
     text-transform: uppercase;
     padding: 2px 0;
-}
-QListWidget#PresetList {
+}}
+QListWidget#PresetList {{
     background: transparent;
     border: none;
     outline: none;
-}
-QListWidget#PresetList::item {
+    color: {text};
+}}
+QListWidget#PresetList::item {{
     padding: 6px 8px;
     border-radius: 4px;
     margin: 1px 2px;
-    color: #cccccc;
-}
-QListWidget#PresetList::item:selected {
-    background: #243040;
-    color: #ffffff;
-}
-QListWidget#PresetList::item:hover:!selected {
-    background: #252525;
-}
+    color: {text_muted};
+}}
+QListWidget#PresetList::item:selected {{
+    background: {sel_bg};
+    color: {sel_text};
+}}
+QListWidget#PresetList::item:hover:!selected {{
+    background: {item_hover};
+}}
 
 /* ── Preview strip ───────────────────────────────── */
-QFrame#PreviewStrip {
-    background: #222222;
-    border: 1px solid #2e2e2e;
+QFrame#PreviewStrip {{
+    background: {strip_bg};
+    border: 1px solid {strip_bdr};
     border-radius: 5px;
-}
-QLabel#DotLabel { color: #777777; font-size: 10px; }
+}}
+QLabel#DotLabel {{ color: {text_subtle}; font-size: 10px; }}
 
-/* ── Toggle buttons (Swatches / Sliders) ─────────── */
-QPushButton#ToggleBtn {
-    background: #252525;
-    color: #888888;
-    border: 1px solid #333333;
+/* ── Toggle bar ──────────────────────────────────── */
+QWidget#ToggleBar {{
+    background: {bar_bg};
+    border-bottom: 1px solid {bar_bdr};
+}}
+
+/* ── Toggle buttons ──────────────────────────────── */
+QPushButton#ToggleBtn {{
+    background: {tog_bg};
+    color: {text_subtle};
+    border: 1px solid {tog_bdr};
     border-radius: 3px;
     padding: 4px 0;
     font-size: 12px;
-}
-QPushButton#ToggleBtn:hover  { color: #cccccc; }
-QPushButton#ToggleBtn[active=true] {
-    background: #1e2d3d;
-    color: #ffffff;
-    border-color: #5f8ac1;
-}
+}}
+QPushButton#ToggleBtn:hover {{ color: {text}; }}
+QPushButton#ToggleBtn[active=true] {{
+    background: {tog_act};
+    color: {tog_act_t};
+    border-color: {accent};
+}}
 
 /* ── Settings button ─────────────────────────────── */
-QPushButton#SettingsBtn {
+QPushButton#SettingsBtn {{
     background: transparent;
-    color: #666666;
+    color: {text_subtle};
     border: none;
     padding: 4px 8px;
     font-size: 12px;
-}
-QPushButton#SettingsBtn:hover { color: #aaaaaa; }
+}}
+QPushButton#SettingsBtn:hover {{ color: {text_muted}; }}
 
 /* ── Settings dialog ─────────────────────────────── */
-QGroupBox {
-    color: #888888;
+QGroupBox {{
+    color: {text_subtle};
     font-size: 11px;
     font-weight: 600;
-    border: 1px solid #2e2e2e;
+    border: 1px solid {frame_bdr};
     border-radius: 4px;
     margin-top: 8px;
     padding-top: 6px;
-}
-QGroupBox::title {
+}}
+QGroupBox::title {{
     subcontrol-origin: margin;
     left: 10px;
     padding: 0 4px;
-}
-QLabel#DialogProductTitle {
-    color: #dddddd;
+}}
+QLabel#DialogProductTitle {{
+    color: {text};
     font-size: 14px;
     font-weight: 700;
-}
-QPushButton#GithubBtn {
+}}
+QPushButton#GithubBtn {{
     background: #24292e;
     color: #ffffff;
     border: 1px solid #444444;
     border-radius: 4px;
     padding: 4px 12px;
     font-weight: 600;
-}
-QPushButton#GithubBtn:hover { background: #2f363d; }
-QPushButton#PaypalBtn {
+}}
+QPushButton#GithubBtn:hover {{ background: #2f363d; }}
+QPushButton#PaypalBtn {{
     background: #003087;
     color: #ffffff;
     border: 1px solid #0070ba;
     border-radius: 4px;
     padding: 4px 12px;
     font-weight: 600;
-}
-QPushButton#PaypalBtn:hover { background: #0070ba; }
+}}
+QPushButton#PaypalBtn:hover {{ background: #0070ba; }}
 
 /* ── Apply button ────────────────────────────────── */
-QPushButton#ApplyButton {
-    background: #5f8ac1;
-    color: #ffffff;
+QPushButton#ApplyButton {{
+    background: {accent};
+    color: {apply_txt};
     border: none;
     border-radius: 4px;
     padding: 0 14px;
     font-weight: 600;
-}
-QPushButton#ApplyButton:hover  { background: #496a93; }
-QPushButton#ApplyButton:pressed{ background: #3a5270; }
+}}
+QPushButton#ApplyButton:hover  {{ background: {apply_hvr}; }}
+QPushButton#ApplyButton:pressed{{ background: {apply_prs}; }}
 
 /* ── Generic buttons ─────────────────────────────── */
-QPushButton {
-    background: #2e2e2e;
-    color: #cccccc;
-    border: 1px solid #3a3a3a;
+QPushButton {{
+    background: {gen_bg};
+    color: {text_muted};
+    border: 1px solid {gen_bdr};
     border-radius: 3px;
     padding: 3px 10px;
-}
-QPushButton:hover  { background: #383838; color: #ffffff; }
-QPushButton:pressed{ background: #252525; }
+}}
+QPushButton:hover  {{ background: {gen_hvr}; color: {text}; }}
+QPushButton:pressed{{ background: {gen_prs}; }}
 
 /* ── Scrollbars ──────────────────────────────────── */
-QScrollArea { background: transparent; border: none; }
-QScrollBar:vertical {
-    background: #1c1c1c; width: 7px; border: none;
-}
-QScrollBar::handle:vertical {
-    background: #3e3e3e; border-radius: 3px; min-height: 20px;
-}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollArea {{ background: transparent; border: none; }}
+QScrollBar:vertical {{
+    background: transparent; width: 8px; border: none; margin: 2px 0;
+}}
+QScrollBar::handle:vertical {{
+    background: {sc_h}; border-radius: 4px; min-height: 24px;
+}}
+QScrollBar::handle:vertical:hover {{ background: {sc_hov}; }}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: none; }}
 
 /* ── Color picker row ────────────────────────────── */
-QFrame#PickerFrame   { background: #222222; border: 1px solid #2e2e2e; border-radius: 5px; }
-QFrame#ColorPickerRow{ background: transparent; }
-QLabel#PickerLabel   { color: #aaaaaa; font-size: 12px; }
-QLabel#HexLabel      { color: #666666; font-size: 11px; font-family: "Consolas", monospace; }
+QFrame#PickerFrame   {{ background: {frame_bg}; border: 1px solid {frame_bdr}; border-radius: 5px; }}
+QFrame#ColorPickerRow{{ background: transparent; }}
+QLabel#PickerLabel   {{ color: {text_muted}; font-size: 12px; }}
+QLabel#HexLabel      {{ color: {text_subtle}; font-size: 11px; font-family: "Consolas", monospace; }}
 
 /* ── Read-only swatches ──────────────────────────── */
-QFrame#SwatchGroup {
-    background: #1e1e1e;
-    border: 1px solid #2a2a2a;
+QFrame#SwatchGroup {{
+    background: {group_bg};
+    border: 1px solid {frame_bdr};
     border-radius: 4px;
-}
-QLabel#GroupTitle  { color: #888888; font-size: 11px; font-weight: 600; }
-QLabel#SwatchLabel { color: #666666; font-size: 9px; }
-QLabel#SectionLabel{ color: #666666; font-size: 11px; font-weight: 600; margin-top: 4px; }
+}}
+QLabel#GroupTitle  {{ color: {text_subtle}; font-size: 11px; font-weight: 600; }}
+QLabel#SwatchLabel {{ color: {text_subtle}; font-size: 9px; }}
+QLabel#SectionLabel{{ color: {text_subtle}; font-size: 11px; font-weight: 600; margin-top: 4px; }}
 
 /* ── MiniPreview ─────────────────────────────────── */
-QFrame#MiniPreview { border-radius: 5px; border: 1px solid #2e2e2e; }
+QFrame#MiniPreview {{ border-radius: 5px; border: 1px solid {prev_bdr}; }}
 
 /* ── OKLCH sliders ───────────────────────────────── */
-QFrame#ColorRow {
-    background: #1e1e1e;
-    border: 1px solid #2e2e2e;
+QFrame#ColorRow {{
+    background: {group_bg};
+    border: 1px solid {frame_bdr};
     border-radius: 5px;
-}
-QLabel#RowTitle   { color: #dcdcdc; font-weight: 600; font-size: 13px; }
-QLabel#SliderLabel{ color: #888888; font-size: 11px; min-width: 62px; }
-QLabel#SliderValue{ color: #666666; font-size: 11px; }
-QSlider::groove:horizontal {
-    height: 4px; background: #333333; border-radius: 2px;
-}
-QSlider::handle:horizontal {
-    background: #cccccc; border: 1px solid #777777;
+}}
+QLabel#RowTitle   {{ color: {text}; font-weight: 600; font-size: 13px; }}
+QLabel#SliderLabel{{ color: {text_subtle}; font-size: 11px; min-width: 62px; }}
+QLabel#SliderValue{{ color: {text_subtle}; font-size: 11px; }}
+QSlider::groove:horizontal {{
+    height: 4px; background: {groove}; border-radius: 2px;
+}}
+QSlider::handle:horizontal {{
+    background: {handle}; border: 1px solid {text_subtle};
     width: 12px; height: 12px; margin: -4px 0; border-radius: 6px;
-}
-QSlider::handle:horizontal:hover { background: #ffffff; }
+}}
+QSlider::handle:horizontal:hover {{ background: {text}; }}
 """
 
 
@@ -209,8 +266,9 @@ class ThemeMainWindow(QWidget):
         super().__init__(parent)
         self.setWindowTitle("3ds Max Themes Manager")
         self.setMinimumSize(640, 540)
-        self.setStyleSheet(STYLESHEET)
         self._current_colors = ("#1c1c1c", "#5f8ac1", "#ffb100")
+        self._current_stylesheet = ""
+        self._apply_stylesheet()
         self._build()
 
     def _build(self):
@@ -238,9 +296,6 @@ class ThemeMainWindow(QWidget):
         toggle_bar = QWidget()
         toggle_bar.setObjectName("ToggleBar")
         toggle_bar.setFixedHeight(36)
-        toggle_bar.setStyleSheet(
-            "#ToggleBar { background:#181818; border-bottom:1px solid #2a2a2a; }"
-        )
         tbl = QHBoxLayout(toggle_bar)
         tbl.setContentsMargins(10, 5, 10, 5)
         tbl.setSpacing(6)
@@ -274,9 +329,17 @@ class ThemeMainWindow(QWidget):
         self._slider_panel.colors_changed.connect(self._on_colors_changed)
         self._btn_swatch.clicked.connect(lambda: self._switch_panel(0))
         self._btn_slider.clicked.connect(lambda: self._switch_panel(1))
-        self._btn_settings.clicked.connect(lambda: SettingsDialog(self).exec())
+        self._btn_settings.clicked.connect(self._open_settings)
 
         self._switch_panel(0)
+
+    def _apply_stylesheet(self):
+        b, a, h = self._current_colors
+        self._current_stylesheet = build_stylesheet(b, a, h)
+        self.setStyleSheet(self._current_stylesheet)
+
+    def _open_settings(self):
+        SettingsDialog(self, stylesheet=self._current_stylesheet).exec()
 
     # ── Panel switch ─────────────────────────────────────────
     def _switch_panel(self, index: int):
@@ -290,6 +353,7 @@ class ThemeMainWindow(QWidget):
     # ── Color change from either panel ───────────────────────
     def _on_colors_changed(self, base: str, accent: str, highlight: str):
         self._current_colors = (base, accent, highlight)
+        self._apply_stylesheet()
         self._sidebar._preview.update_colors(base, accent, highlight)
 
     # ── Preset list → load into active panel ─────────────────

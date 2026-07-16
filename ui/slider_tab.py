@@ -183,12 +183,13 @@ class MiniPreview(QFrame):
         lay.addStretch()
 
     def update(self, base: str, accent: str, highlight: str):
-        from theme_engine import _shift, _is_dark
-        text = _shift(base, dL=0.65 if _is_dark(base) else -0.65, scaleC=0.05)
-        self._bg_lbl.setStyleSheet(f"color:{text}; padding: 4px 8px;")
+        from theme_engine import _contrast_text
+        bg_text  = _contrast_text(base)
+        btn_text = _contrast_text(accent)
+        self._bg_lbl.setStyleSheet(f"color:{bg_text}; padding: 4px 8px;")
         self.setStyleSheet(f"#MiniPreview {{ background:{base}; border-radius:4px; }}")
         self._btn_lbl.setStyleSheet(
-            f"QPushButton {{ background:{accent}; color:{text};"
+            f"QPushButton {{ background:{accent}; color:{btn_text};"
             " border:none; padding:4px 12px; border-radius:3px; }}"
         )
         self._hi_lbl.setStyleSheet(f"color:{highlight}; padding: 4px 8px;")

@@ -52,9 +52,21 @@ def _mix(a: str, b: str, t: float) -> str:
 
 # ── Color map generation ────────────────────────────────────────────────────
 
+def _luminance(hex_color: str) -> float:
+    """WCAG relative luminance (0=black, 1=white)."""
+    h = hex_color.lstrip("#")
+    r, g, b = (_linear(int(h[i:i+2], 16) / 255) for i in (0, 2, 4))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
 def _is_dark(hex_color: str) -> bool:
-    L, _, _ = hex_to_oklch(hex_color)
-    return L < 0.5
+    return _luminance(hex_color) < 0.179
+
+def _contrast_text(bg_hex: str) -> str:
+    """Return white or near-black whichever has higher WCAG contrast on bg_hex."""
+    lum = _luminance(bg_hex)
+    contrast_white = (1.0 + 0.05) / (lum + 0.05)
+    contrast_black = (lum + 0.05) / (0.0 + 0.05)
+    return "#f0f0f0" if contrast_white >= contrast_black else "#1a1a1a"
 
 def generate_color_map(base: str, accent: str, highlight: str) -> dict:
     """
@@ -64,14 +76,16 @@ def generate_color_map(base: str, accent: str, highlight: str) -> dict:
     dark = _is_dark(base)
     text_dL = 0.65 if dark else -0.65
 
+    btn_bg = _shift(base, dL=-0.05)
+
     m = {}
 
     # ── Appearance ──
     m[111] = base                                             # Background Odd
     m[112] = _shift(base, dL=0.03)                          # Background Even
-    m[113] = _shift(base, dL=-0.05)                         # Button
-    m[114] = _shift(base, dL=text_dL, scaleC=0.05)          # Button Text
-    m[115] = _shift(base, dL=text_dL*1.1, scaleC=0.05)      # Button Text Pressed
+    m[113] = btn_bg                                           # Button
+    m[114] = _contrast_text(btn_bg)                          # Button Text
+    m[115] = _contrast_text(btn_bg)                          # Button Text Pressed
     m[116] = _shift(accent, dL=0.15)                         # Focus Border
     m[117] = _shift(base, dL=0.12)                           # UI Borders
     m[1]   = _shift(base, dL=text_dL*0.95, scaleC=0.08)     # Text

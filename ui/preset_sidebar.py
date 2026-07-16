@@ -16,15 +16,19 @@ import presets as preset_data
 
 
 def _make_dot_icon(colors: list[str], size=20) -> QIcon:
-    """Create a small icon with 3 color circles side by side."""
+    """Create a small icon with 3 color circles side by side, each with a thin outline."""
     px = QPixmap(size * 3 + 4, size)
     px.fill(Qt.transparent)
     p = QPainter(px)
     p.setRenderHint(QPainter.Antialiasing)
+    outline = QColor("#00000060")  # semi-transparent black outline on all dots
+    pen = p.pen()
+    pen.setColor(outline)
+    pen.setWidthF(1.2)
     for i, c in enumerate(colors):
         p.setBrush(QBrush(QColor(c)))
-        p.setPen(Qt.NoPen)
-        p.drawEllipse(i * (size + 2), 1, size - 2, size - 2)
+        p.setPen(pen)
+        p.drawEllipse(i * (size + 2) + 1, 2, size - 3, size - 3)
     p.end()
     return QIcon(px)
 
