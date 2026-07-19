@@ -41,7 +41,6 @@ Pick just **3 colors** (Base, Accent, Highlight) and the tool automatically deri
 1. Download the latest release and extract it.
 2. Copy `MABThemsManger.bundle` to one of:
    - `C:\ProgramData\Autodesk\ApplicationPlugins\` *(all users)*
-   - `%APPDATA%\Autodesk\ApplicationPlugins\` *(current user only)*
 3. Restart 3ds Max.
 4. Go to the **MYARTSBOX** menu → click **3ds Max Themes Manager**.
 
