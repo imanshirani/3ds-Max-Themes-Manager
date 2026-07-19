@@ -70,13 +70,6 @@ Click **⚙ Settings** in the top bar to view version info and links.
 
 Instead of requiring users to know 40+ color IDs, the tool derives them all from 3 seed colors using **OKLCH** (a perceptually uniform color space). Shifts in lightness, chroma, and hue are applied consistently, so your theme looks harmonious across the entire Max interface — backgrounds, buttons, borders, text, trackbar, viewports, rollups, and tabs.
 
-The result is written to:
-```
-%LOCALAPPDATA%\Autodesk\3dsMax\2026 - 64bit\ENU\en-US\UI\MaxStartUI.clrx
-```
-and applied live via `colorMan.loadColorFile()` + `colorMan.repaintUI()`.
-
-
 ---
 
 ## License
