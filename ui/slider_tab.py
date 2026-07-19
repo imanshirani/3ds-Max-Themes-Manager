@@ -197,6 +197,7 @@ class MiniPreview(QFrame):
 
 class SliderPanel(QWidget):
     colors_changed = Signal(str, str, str)   # base, accent, highlight
+    applied        = Signal(str, str, str)   # base, accent, highlight — on Apply click
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -260,6 +261,7 @@ class SliderPanel(QWidget):
         cmap = generate_color_map(base, accent, highlight)
         clrx_writer.write_clrx(cmap)
         clrx_writer.apply_to_max()
+        self.applied.emit(base, accent, highlight)
 
 
 # Keep old name as alias for backward compat

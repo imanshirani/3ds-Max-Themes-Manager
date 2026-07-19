@@ -2,7 +2,7 @@
 Main window for the 3ds Max Themes Manager.
 Layout: sidebar (preset list) on the left + right panel with Swatches / Sliders toggle.
 """
-import sys, os
+import sys, os, ctypes, ctypes.wintypes
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PySide6.QtWidgets import (
@@ -17,6 +17,96 @@ from ui.slider_tab      import SliderPanel
 from ui.settings_dialog import SettingsDialog
 import clrx_writer
 from theme_engine import generate_color_map, _shift, _is_dark, _contrast_text
+
+
+# ── Windows 11 DWM title bar color ─────────────────────────────────────────
+_DWMWA_CAPTION_COLOR     = 35   # Win11 21H2+
+_DWMWA_TEXT_COLOR        = 36
+_DWMWA_BORDER_COLOR      = 34
+_dwmapi = None
+
+def _load_dwm():
+    global _dwmapi
+    try:
+        _dwmapi = ctypes.windll.dwmapi
+    except Exception:
+        _dwmapi = None
+
+def _hex_to_colorref(hex_color: str) -> int:
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return r | (g << 8) | (b << 16)   # COLORREF = 0x00BBGGRR
+
+def set_titlebar_color(win_id: int, bg: str, fg: str):
+    """Apply DWM caption color on Windows 11. Safe no-op on older Windows."""
+    if _dwmapi is None:
+        _load_dwm()
+    if _dwmapi is None:
+        return
+    try:
+        hwnd = ctypes.c_void_p(win_id)
+        bg_ref = ctypes.c_uint(_hex_to_colorref(bg))
+        fg_ref = ctypes.c_uint(_hex_to_colorref(fg))
+        _dwmapi.DwmSetWindowAttribute(hwnd, _DWMWA_CAPTION_COLOR,
+                                      ctypes.byref(bg_ref), ctypes.sizeof(bg_ref))
+        _dwmapi.DwmSetWindowAttribute(hwnd, _DWMWA_TEXT_COLOR,
+                                      ctypes.byref(fg_ref), ctypes.sizeof(fg_ref))
+    except Exception:
+        pass
+
+
+def _get_max_pid() -> int:
+    """Return PID of the running 3dsmax.exe process, or 0 if not found."""
+    try:
+        import subprocess
+        out = subprocess.check_output(
+            ["tasklist", "/FI", "IMAGENAME eq 3dsmax.exe", "/FO", "CSV", "/NH"],
+            creationflags=0x08000000
+        ).decode(errors="ignore")
+        for line in out.strip().splitlines():
+            parts = [p.strip('"') for p in line.split('","')]
+            if len(parts) >= 2 and parts[0].lower() == "3dsmax.exe":
+                return int(parts[1])
+    except Exception:
+        pass
+    return 0
+
+
+def apply_titlebar_to_all_max_windows(bg: str, fg: str):
+    """Enumerate all visible top-level windows of 3dsmax.exe and set their title bar color."""
+    if _dwmapi is None:
+        _load_dwm()
+    if _dwmapi is None:
+        return
+
+    pid = _get_max_pid()
+    if pid == 0:
+        return
+
+    found = []
+    EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_long)
+
+    def _cb(hwnd, _):
+        visible = ctypes.windll.user32.IsWindowVisible(hwnd)
+        w_pid = ctypes.c_ulong(0)
+        ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(w_pid))
+        if visible and w_pid.value == pid:
+            found.append(hwnd)
+        return True
+
+    ctypes.windll.user32.EnumWindows(EnumWindowsProc(_cb), 0)
+
+    bg_ref = ctypes.c_uint(_hex_to_colorref(bg))
+    fg_ref = ctypes.c_uint(_hex_to_colorref(fg))
+    for hwnd in found:
+        try:
+            h = ctypes.c_void_p(hwnd)
+            _dwmapi.DwmSetWindowAttribute(h, _DWMWA_CAPTION_COLOR,
+                                          ctypes.byref(bg_ref), ctypes.sizeof(bg_ref))
+            _dwmapi.DwmSetWindowAttribute(h, _DWMWA_TEXT_COLOR,
+                                          ctypes.byref(fg_ref), ctypes.sizeof(fg_ref))
+        except Exception:
+            pass
 
 
 def build_stylesheet(base: str, accent: str, highlight: str) -> str:
@@ -327,6 +417,8 @@ class ThemeMainWindow(QWidget):
         # Signals
         self._swatch_panel.colors_changed.connect(self._on_colors_changed)
         self._slider_panel.colors_changed.connect(self._on_colors_changed)
+        self._swatch_panel.applied.connect(lambda b, a, h: self._apply_max_titlebars(b))
+        self._slider_panel.applied.connect(lambda b, a, h: self._apply_max_titlebars(b))
         self._btn_swatch.clicked.connect(lambda: self._switch_panel(0))
         self._btn_slider.clicked.connect(lambda: self._switch_panel(1))
         self._btn_settings.clicked.connect(self._open_settings)
@@ -337,6 +429,24 @@ class ThemeMainWindow(QWidget):
         b, a, h = self._current_colors
         self._current_stylesheet = build_stylesheet(b, a, h)
         self.setStyleSheet(self._current_stylesheet)
+        # Title bar can only be set after the window has a valid HWND
+        if self.isVisible():
+            self._apply_titlebar(b)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        # First time window becomes visible — now HWND is valid
+        b = self._current_colors[0]
+        self._apply_titlebar(b)
+
+    def _apply_titlebar(self, base: str, win_id=None):
+        try:
+            if win_id is None:
+                win_id = int(self.window().winId())
+            fg = _contrast_text(base)
+            set_titlebar_color(win_id, base, fg)
+        except Exception:
+            pass
 
     def _open_settings(self):
         SettingsDialog(self, stylesheet=self._current_stylesheet).exec()
@@ -369,6 +479,11 @@ class ThemeMainWindow(QWidget):
         cmap = generate_color_map(b, a, h)
         clrx_writer.write_clrx(cmap, theme_type=preset.get("theme_type", 0))
         clrx_writer.apply_to_max()
+        self._apply_max_titlebars(b)
+
+    def _apply_max_titlebars(self, base: str):
+        fg = _contrast_text(base)
+        apply_titlebar_to_all_max_windows(base, fg)
 
     # ── Save current colors as new preset ────────────────────
     def _on_save_requested(self, name: str):

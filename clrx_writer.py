@@ -104,6 +104,6 @@ def apply_to_max(path: str = CLRX_PATH):
         from pymxs import runtime as rt
         rt.colorMan.loadColorFile(path)
         rt.colorMan.reInitIcons()
-        rt.colorMan.repaintUI()
+        rt.colorMan.repaintUI(True)
     except Exception as e:
         print(f"[ThemeCustomizer] apply_to_max: {e}")

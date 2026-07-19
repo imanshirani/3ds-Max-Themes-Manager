@@ -152,6 +152,7 @@ class MiniPreview(QFrame):
 
 class SwatchPanel(QWidget):
     colors_changed = Signal(str, str, str)   # base, accent, highlight
+    applied        = Signal(str, str, str)   # base, accent, highlight — on Apply click
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -263,3 +264,4 @@ class SwatchPanel(QWidget):
         cmap = generate_color_map(b, a, h)
         clrx_writer.write_clrx(cmap)
         clrx_writer.apply_to_max()
+        self.applied.emit(b, a, h)
