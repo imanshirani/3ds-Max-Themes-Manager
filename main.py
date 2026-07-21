@@ -27,9 +27,20 @@ for _mod in _MODULES_TO_CLEAR:
 from PySide6.QtWidgets import QDockWidget, QApplication
 from PySide6.QtCore import Qt
 
-from ui.main_window import ThemeMainWindow
+from ui.main_window import ThemeMainWindow, apply_titlebar_to_all_max_windows
+from theme_engine import _contrast_text
+import presets as _presets
 
 _dock_ref = None  # keep alive
+
+
+def _restore_titlebars():
+    """Re-apply last saved title bar color on Max startup."""
+    last = _presets.load_last_applied()
+    if last:
+        base = last.get("base", "#1c1c1c")
+        fg   = _contrast_text(base)
+        apply_titlebar_to_all_max_windows(base, fg)
 
 
 def show_theme_customizer():
@@ -42,6 +53,8 @@ def show_theme_customizer():
         except Exception:
             pass
         _dock_ref = None
+
+    _restore_titlebars()
 
     try:
         from qtmax import GetQMaxMainWindow

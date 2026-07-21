@@ -75,11 +75,29 @@ PRESETS = [
     },
 ]
 
-USER_PRESETS_FILE = os.path.join(
+_APPDATA_DIR = os.path.join(
     os.environ.get("APPDATA", os.path.expanduser("~")),
     "MaxThemesManager",
-    "user_presets.json",
 )
+USER_PRESETS_FILE = os.path.join(_APPDATA_DIR, "user_presets.json")
+LAST_APPLIED_FILE = os.path.join(_APPDATA_DIR, "last_applied.json")
+
+
+def save_last_applied(base: str, accent: str, highlight: str, theme_type: int = 0):
+    os.makedirs(_APPDATA_DIR, exist_ok=True)
+    with open(LAST_APPLIED_FILE, "w", encoding="utf-8") as f:
+        json.dump({"base": base, "accent": accent,
+                   "highlight": highlight, "theme_type": theme_type}, f)
+
+
+def load_last_applied() -> dict | None:
+    if not os.path.isfile(LAST_APPLIED_FILE):
+        return None
+    try:
+        with open(LAST_APPLIED_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
 
 
 def _load_user_presets() -> list[dict]:

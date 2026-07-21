@@ -56,20 +56,8 @@ def set_titlebar_color(win_id: int, bg: str, fg: str):
 
 
 def _get_max_pid() -> int:
-    """Return PID of the running 3dsmax.exe process, or 0 if not found."""
-    try:
-        import subprocess
-        out = subprocess.check_output(
-            ["tasklist", "/FI", "IMAGENAME eq 3dsmax.exe", "/FO", "CSV", "/NH"],
-            creationflags=0x08000000
-        ).decode(errors="ignore")
-        for line in out.strip().splitlines():
-            parts = [p.strip('"') for p in line.split('","')]
-            if len(parts) >= 2 and parts[0].lower() == "3dsmax.exe":
-                return int(parts[1])
-    except Exception:
-        pass
-    return 0
+    """Return PID — when running inside Max, we ARE the Max process."""
+    return os.getpid()
 
 
 def apply_titlebar_to_all_max_windows(bg: str, fg: str):
@@ -484,6 +472,14 @@ class ThemeMainWindow(QWidget):
     def _apply_max_titlebars(self, base: str):
         fg = _contrast_text(base)
         apply_titlebar_to_all_max_windows(base, fg)
+        # Persist so next Max launch can restore it
+        try:
+            import presets as _p
+            b, a, h = self._current_colors
+            tt = 0
+            _p.save_last_applied(b, a, h, tt)
+        except Exception:
+            pass
 
     # ── Save current colors as new preset ────────────────────
     def _on_save_requested(self, name: str):
