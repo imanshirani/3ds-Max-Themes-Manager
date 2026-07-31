@@ -8,7 +8,9 @@
 
 A Python + PySide6 tool for **3ds Max 2025–2027** that lets you create and apply fully custom UI color themes — no manual XML editing required.
 
-Pick just **3 colors** (Base, Accent, Highlight) and the tool automatically derives all UI color IDs using perceptually-uniform **OKLCH color math**, then writes them directly to your `MaxStartUI.clrx` and reloads the theme live — no restart needed.
+Pick just **3 colors** (Base, Accent, Highlight) and the tool automatically derives all UI color IDs using perceptually uniform **OKLCH color math**, then writes them directly to your `MaxStartUI.clrx` and reloads the theme live — no restart needed.
+
+**Note that to change the color of the ribbon or text editor, you must restart 3ds Max. (Only once after applying)
 
 ![screenshot](etc/screen.png)
 
