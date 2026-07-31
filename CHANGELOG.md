@@ -8,7 +8,7 @@ All notable changes to 3ds Max Themes Manager are documented here.
 
 ### Added
 - `get_max_enu_dir()` in `clrx_writer.py` — detects the ENU appdata path of the currently running Max version via `pymxs.pathConfig`
-- Per-version data isolation: `last_applied.json` and `user_presets.json` are now saved inside each Max version's own ENU folder (`...\3dsMax\<VERSION>\ENU\MaxThemesManager\`), so Max 2024 and Max 2026 no longer share theme state
+- Per-version data isolation: `last_applied.json` and `user_presets.json` are now saved inside each Max version's own ENU folder (`...\3dsMax\<VERSION>\ENU\MaxThemesManager\`), 
 - Shared fallback path (`%APPDATA%\MaxThemesManager`) is still used when running outside of Max (standalone / testing)
 
 ### Fixed
