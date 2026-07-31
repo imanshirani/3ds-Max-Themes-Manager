@@ -262,6 +262,8 @@ class SwatchPanel(QWidget):
     def _apply(self):
         b, a, h = self.current_colors()
         cmap = generate_color_map(b, a, h)
-        clrx_writer.write_clrx(cmap)
+        from theme_engine import _is_dark
+        theme_type = 0 if _is_dark(b) else 1
+        clrx_writer.write_clrx(cmap, theme_type=theme_type)
         clrx_writer.apply_to_max()
         self.applied.emit(b, a, h)

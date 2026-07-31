@@ -344,10 +344,24 @@ class ThemeMainWindow(QWidget):
         super().__init__(parent)
         self.setWindowTitle("3ds Max Themes Manager")
         self.setMinimumSize(640, 540)
-        self._current_colors = ("#1c1c1c", "#5f8ac1", "#ffb100")
+        self._current_colors = self._load_last_colors()
         self._current_stylesheet = ""
         self._apply_stylesheet()
         self._build()
+
+    def _load_last_colors(self) -> tuple:
+        try:
+            import presets as _p
+            last = _p.load_last_applied()
+            if last:
+                return (
+                    last.get("base",      "#1c1c1c"),
+                    last.get("accent",    "#5f8ac1"),
+                    last.get("highlight", "#ffb100"),
+                )
+        except Exception:
+            pass
+        return ("#1c1c1c", "#5f8ac1", "#ffb100")
 
     def _build(self):
         root = QHBoxLayout(self)
@@ -413,6 +427,19 @@ class ThemeMainWindow(QWidget):
 
         self._switch_panel(0)
 
+        # Restore last applied colors and preset selection
+        b, a, h = self._current_colors
+        self._swatch_panel.set_base_colors(b, a, h)
+        self._slider_panel.set_base_colors(b, a, h)
+        self._sidebar._preview.update_colors(b, a, h)
+        try:
+            import presets as _p
+            last = _p.load_last_applied()
+            if last and last.get("preset_name"):
+                self._sidebar.select_by_name(last["preset_name"])
+        except Exception:
+            pass
+
     def _apply_stylesheet(self):
         b, a, h = self._current_colors
         self._current_stylesheet = build_stylesheet(b, a, h)
@@ -472,12 +499,19 @@ class ThemeMainWindow(QWidget):
     def _apply_max_titlebars(self, base: str):
         fg = _contrast_text(base)
         apply_titlebar_to_all_max_windows(base, fg)
+        b, a, h = self._current_colors
+        clrx_writer.apply_listener_colors(base)
+        clrx_writer.save_listener_startup_script(base)
+        clrx_writer.apply_editor_properties(b, a, h)
+        clrx_writer.apply_ribbon_theme(b, a, h)
         # Persist so next Max launch can restore it
         try:
             import presets as _p
             b, a, h = self._current_colors
-            tt = 0
-            _p.save_last_applied(b, a, h, tt)
+            preset_name = self._sidebar.current_preset_name()
+            current_preset = self._sidebar._current or {}
+            theme_type = current_preset.get("theme_type", 0)
+            _p.save_last_applied(b, a, h, theme_type=theme_type, preset_name=preset_name)
         except Exception:
             pass
 

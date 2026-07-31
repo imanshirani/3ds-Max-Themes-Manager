@@ -185,3 +185,14 @@ class PresetSidebar(QWidget):
         """Called by main_window after providing current colors."""
         preset_data.save_user_preset(name, base, accent, highlight, theme_type)
         self._refresh_list()
+
+    def current_preset_name(self) -> str:
+        """Return the name of the currently selected preset, or empty string."""
+        return self._current["name"] if self._current else ""
+
+    def select_by_name(self, name: str):
+        """Select a preset by name if it exists in the list."""
+        for i, p in enumerate(self._presets):
+            if p["name"] == name:
+                self._list.setCurrentRow(i)
+                return

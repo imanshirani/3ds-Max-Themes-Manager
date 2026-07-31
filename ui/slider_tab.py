@@ -259,10 +259,8 @@ class SliderPanel(QWidget):
     def _apply(self):
         base, accent, highlight = self.current_colors()
         cmap = generate_color_map(base, accent, highlight)
-        clrx_writer.write_clrx(cmap)
+        from theme_engine import _is_dark
+        theme_type = 0 if _is_dark(base) else 1
+        clrx_writer.write_clrx(cmap, theme_type=theme_type)
         clrx_writer.apply_to_max()
         self.applied.emit(base, accent, highlight)
-
-
-# Keep old name as alias for backward compat
-SliderTab = SliderPanel

@@ -29,18 +29,20 @@ from PySide6.QtCore import Qt
 
 from ui.main_window import ThemeMainWindow, apply_titlebar_to_all_max_windows
 from theme_engine import _contrast_text
+import clrx_writer
 import presets as _presets
 
 _dock_ref = None  # keep alive
 
 
-def _restore_titlebars():
-    """Re-apply last saved title bar color on Max startup."""
+def _restore_extras():
+    """Re-apply titlebar + listener colors from last saved state on Max startup."""
     last = _presets.load_last_applied()
     if last:
         base = last.get("base", "#1c1c1c")
         fg   = _contrast_text(base)
         apply_titlebar_to_all_max_windows(base, fg)
+        clrx_writer.apply_listener_colors(base)
 
 
 def show_theme_customizer():
@@ -54,7 +56,7 @@ def show_theme_customizer():
             pass
         _dock_ref = None
 
-    _restore_titlebars()
+    _restore_extras()
 
     try:
         from qtmax import GetQMaxMainWindow
