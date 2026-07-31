@@ -4,7 +4,7 @@ All notable changes to 3ds Max Themes Manager are documented here.
 
 ---
 
-##  [0.0.3] - Initial public release
+##  [0.0.3] - 07-31-2026 public release
 
 ### Added
 - `get_max_enu_dir()` in `clrx_writer.py` — detects the ENU appdata path of the currently running Max version via `pymxs.pathConfig`
