@@ -28,6 +28,41 @@ def get_max_enu_dir() -> str:
     return ""
 
 
+def get_max_install_dir() -> str:
+    """Return the Program Files install dir for the currently running Max version.
+
+    Example: C:\\Program Files\\Autodesk\\3ds Max 2025
+    Uses #maxRoot token first, then derives from ENU path as fallback.
+    Returns empty string when not running inside Max.
+    """
+    # Primary: #maxRoot is the standard MAXScript token for the install directory
+    try:
+        from pymxs import runtime as rt
+        root = rt.pathConfig.GetDir(rt.Name("maxRoot"))
+        if root and os.path.isdir(root):
+            return root.rstrip("\\/")
+    except Exception:
+        pass
+    # Fallback: derive from ENU appdata path
+    # ENU path: ...AppData\Local\Autodesk\3dsMax\2025 - 64bit\ENU
+    # Install:  ...Program Files\Autodesk\3ds Max 2025
+    try:
+        enu = get_max_enu_dir()
+        if enu:
+            parts = enu.replace("/", "\\").split("\\")
+            idx = next((i for i, p in enumerate(parts) if p.lower() == "3dsmax"), -1)
+            if idx >= 0 and idx + 1 < len(parts):
+                ver_folder = parts[idx + 1]          # e.g. "2025 - 64bit"
+                year = ver_folder.split(" - ")[0]    # e.g. "2025"
+                prog = os.environ.get("PROGRAMFILES", r"C:\Program Files")
+                candidate = os.path.join(prog, "Autodesk", f"3ds Max {year}")
+                if os.path.isdir(candidate):
+                    return candidate
+    except Exception:
+        pass
+    return ""
+
+
 def _find_clrx_path() -> str:
     """Find MaxStartUI.clrx for the running Max version dynamically."""
     try:
@@ -413,18 +448,15 @@ def apply_ribbon_theme(base: str, accent: str, highlight: str):
             "RibbonListButtonBackgroundBrushRollover":     (xc(btn_idle_b), xc(btn_hover_t)),
         })
 
-        prog = os.environ.get("PROGRAMFILES", r"C:\Program Files")
-        autodesk = os.path.join(prog, "Autodesk")
-        xaml_files = []
-        if os.path.isdir(autodesk):
-            for entry in os.listdir(autodesk):
-                xaml = os.path.join(autodesk, entry, "en-US", "UI", "CustomRibbonTheme.xaml")
-                if os.path.isfile(xaml):
-                    xaml_files.append(xaml)
-
-        if not xaml_files:
-            print("[ThemesManager] No CustomRibbonTheme.xaml found")
+        install_dir = get_max_install_dir()
+        if not install_dir:
+            print("[ThemesManager] apply_ribbon_theme: could not detect running Max version")
             return
+        xaml = os.path.join(install_dir, "en-US", "UI", "CustomRibbonTheme.xaml")
+        if not os.path.isfile(xaml):
+            print(f"[ThemesManager] No CustomRibbonTheme.xaml found in {install_dir}")
+            return
+        xaml_files = [xaml]
 
         for xaml_path in xaml_files:
             with open(xaml_path, "r", encoding="utf-8") as f:
@@ -451,46 +483,41 @@ def apply_ribbon_theme(base: str, accent: str, highlight: str):
             # Replace LinearGradientBrush top+bottom colors by key name
             for key, (top, bot) in gradient_replacements.items():
                 new_content = re.sub(
-                    rf'(x:Key="{re.escape(key)}"[^>]*>[\s\S]*?GradientStop[^C]*Color=")[^"]*("[\s\S]*?GradientStop[^C]*Color=")[^"]*(")',
+                    rf'(x:Key="{re.escape(key)}"[\s\S]*?<GradientStop\b[^/]*Color=")[^"]*("[^/]*/>\s*<GradientStop\b[^/]*Color=")[^"]*(")',
                     rf'\g<1>{top}\2{bot}\3',
                     new_content, count=1
                 )
 
             # Replace active button gradient (accent)
             new_content = re.sub(
-                r'(x:Key="RibbonButtonBackgroundBrushActive"[^>]*>[\s\S]*?GradientStop[^C]*Color=")[^"]*("[\s\S]*?GradientStop[^C]*Color=")[^"]*(")',
+                r'(x:Key="RibbonButtonBackgroundBrushActive"[\s\S]*?<GradientStop\b[^/]*Color=")[^"]*("[^/]*/>\s*<GradientStop\b[^/]*Color=")[^"]*(")',
                 rf'\g<1>{xc(btn_active_t)}\2{xc(btn_active_b)}\3',
                 new_content, count=1
             )
 
             # Write to temp file (mkstemp avoids race condition)
-            import json as _json
             tmp_fd, tmp = tempfile.mkstemp(suffix=".xaml")
             with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
                 f.write(new_content)
 
-            # Helper script for admin copy
+            # Use a .ps1 file for admin copy — inline -Command fails with curly braces
+            def _ps(p): return "'" + p.replace("'", "''") + "'"
             bak_path = xaml_path + ".mab_backup"
-            hlp_fd, helper = tempfile.mkstemp(suffix=".py")
-            # Use json.dumps to safely escape all paths — avoids injection via backslash/quote
-            with os.fdopen(hlp_fd, "w", encoding="utf-8") as f:
-                f.write(
-                    f"import shutil, os\n"
-                    f"src = {_json.dumps(tmp)}\n"
-                    f"dst = {_json.dumps(xaml_path)}\n"
-                    f"bak = {_json.dumps(bak_path)}\n"
-                    f"hlp = {_json.dumps(helper)}\n"
-                    f"if not os.path.isfile(bak):\n"
-                    f"    shutil.copy2(dst, bak)\n"
-                    f"shutil.copy2(src, dst)\n"
-                    f"os.remove(src)\n"
-                    f"os.remove(hlp)\n"
-                )
-
+            script = "\n".join([
+                f"$dst = {_ps(xaml_path)}",
+                f"$src = {_ps(tmp)}",
+                f"$bak = {_ps(bak_path)}",
+                f"if (-not (Test-Path $bak)) {{ Copy-Item $dst $bak }}",
+                f"Copy-Item $src $dst -Force",
+                f"Remove-Item $src -ErrorAction SilentlyContinue",
+            ])
+            ps_fd, ps_path = tempfile.mkstemp(suffix=".ps1")
+            with os.fdopen(ps_fd, "w", encoding="utf-8") as f:
+                f.write(script)
             result = ctypes.windll.shell32.ShellExecuteW(
                 None, "runas",
-                r"C:\Windows\System32\cmd.exe",
-                f'/c python "{helper}"',
+                r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe",
+                f'-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{ps_path}"',
                 None, 0
             )
             if result <= 32:

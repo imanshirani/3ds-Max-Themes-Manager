@@ -12,7 +12,6 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 
 from theme_engine import generate_color_map, _shift, _is_dark, _contrast_text
-import clrx_writer
 
 
 SWATCH_GROUPS = [
@@ -261,9 +260,4 @@ class SwatchPanel(QWidget):
 
     def _apply(self):
         b, a, h = self.current_colors()
-        cmap = generate_color_map(b, a, h)
-        from theme_engine import _is_dark
-        theme_type = 0 if _is_dark(b) else 1
-        clrx_writer.write_clrx(cmap, theme_type=theme_type)
-        clrx_writer.apply_to_max()
         self.applied.emit(b, a, h)

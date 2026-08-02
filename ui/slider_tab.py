@@ -13,7 +13,6 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QLinearGradient, QPainter, QBrush, QPen
 
 from theme_engine import generate_color_map, hex_to_oklch, oklch_to_hex
-import clrx_writer
 
 
 class GradientSlider(QSlider):
@@ -258,9 +257,4 @@ class SliderPanel(QWidget):
 
     def _apply(self):
         base, accent, highlight = self.current_colors()
-        cmap = generate_color_map(base, accent, highlight)
-        from theme_engine import _is_dark
-        theme_type = 0 if _is_dark(base) else 1
-        clrx_writer.write_clrx(cmap, theme_type=theme_type)
-        clrx_writer.apply_to_max()
         self.applied.emit(base, accent, highlight)

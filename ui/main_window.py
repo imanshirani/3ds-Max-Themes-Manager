@@ -491,29 +491,38 @@ class ThemeMainWindow(QWidget):
     # ── Apply from sidebar ────────────────────────────────────
     def _on_preset_applied(self, preset: dict):
         b, a, h = preset["base"], preset["accent"], preset["highlight"]
-        cmap = generate_color_map(b, a, h)
-        clrx_writer.write_clrx(cmap, theme_type=preset.get("theme_type", 0))
-        clrx_writer.apply_to_max()
-        self._apply_max_titlebars(b)
+        self._do_full_apply(b, a, h, preset.get("theme_type", 0))
 
-    def _apply_max_titlebars(self, base: str):
+    # ── Single entry point for all Apply actions ──────────────
+    def _do_full_apply(self, base: str, accent: str, highlight: str, theme_type: int = 0):
+        from theme_engine import _is_dark
+        if theme_type == 0 and not _is_dark(base):
+            theme_type = 1
+
+        cmap = generate_color_map(base, accent, highlight)
+        clrx_writer.write_clrx(cmap, theme_type=theme_type)
+        clrx_writer.apply_to_max()
+
         fg = _contrast_text(base)
         apply_titlebar_to_all_max_windows(base, fg)
-        b, a, h = self._current_colors
         clrx_writer.apply_listener_colors(base)
         clrx_writer.save_listener_startup_script(base)
-        clrx_writer.apply_editor_properties(b, a, h)
-        clrx_writer.apply_ribbon_theme(b, a, h)
-        # Persist so next Max launch can restore it
+        clrx_writer.apply_editor_properties(base, accent, highlight)
+        clrx_writer.apply_ribbon_theme(base, accent, highlight)
+
         try:
             import presets as _p
-            b, a, h = self._current_colors
             preset_name = self._sidebar.current_preset_name()
-            current_preset = self._sidebar._current or {}
-            theme_type = current_preset.get("theme_type", 0)
-            _p.save_last_applied(b, a, h, theme_type=theme_type, preset_name=preset_name)
+            _p.save_last_applied(base, accent, highlight,
+                                 theme_type=theme_type, preset_name=preset_name)
         except Exception:
             pass
+
+    def _apply_max_titlebars(self, base: str):
+        b, a, h = self._current_colors
+        current_preset = self._sidebar._current or {}
+        theme_type = current_preset.get("theme_type", 0)
+        self._do_full_apply(b, a, h, theme_type)
 
     # ── Save current colors as new preset ────────────────────
     def _on_save_requested(self, name: str):
